@@ -26,12 +26,10 @@ def _safe_error(action: str) -> dict:
     blip, a bad request to Google's API), we don't want the raw
     exception — which could include file paths, account details, or
     other internal info — going out to whoever is calling this
-    server. So every tool catches its own errors and returns this
-    generic message instead. The real error can still be logged
-    locally for debugging; it just never leaves the server.
+    server. Each tool catches its internal errors and returns this
+    generic message instead.
     """
     return {"error": f"Something went wrong while trying to {action}. Please try again in a moment."}
-
 
 @mcp.tool()
 def get_upcoming_events(days: int = 7) -> list[dict]:

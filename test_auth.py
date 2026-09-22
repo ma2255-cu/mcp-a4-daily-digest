@@ -8,4 +8,3 @@ flow = InstalledAppFlow.from_client_secrets_file(
 creds = flow.run_local_server(port=0)
 
 print("SUCCESS! Authentication worked.")
-print("Access token (first 20 chars):", creds.token[:20])

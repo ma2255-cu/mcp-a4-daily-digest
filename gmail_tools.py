@@ -13,22 +13,35 @@ def _sanitize_query(query: str) -> str:
     """
     BEST PRACTICE — Input Sanitization.
 
-    `query` gets dropped straight into a Gmail search string. Gmail
-    search supports operators like "from:", "is:", "OR", "*", etc, so
-    without this, someone could pass something like
-    "urgent OR is:trusted from:*" and widen the search far past a
-    simple keyword — effectively injecting extra search commands the
-    tool was never meant to allow.
+    `query` gets passed into a Gmail search string. Gmail supports operators
+    such as "from:", "is:", "OR", "*", etc. Without sanitization, a caller
+    could provide input that changes the behavior of the Gmail search instead
+    of acting as a simple keyword search.
 
-    To stop that, we only let plain letters, numbers, and spaces
-    through. Anything else (colons, asterisks, quotes, boolean
-    operators) gets stripped, so the query can only ever behave like
-    a simple keyword search, never like an injected command.
+    To prevent this, the input is cleaned in two steps:
+    1. Remove special characters used by Gmail search syntax.
+    2. Remove Boolean operators such as OR, AND, and NOT.
+
+    The result is limited to simple keyword-style input before it is sent
+    to Gmail.
     """
     if not query:
         return ""
-    safe_query = re.sub(r"[^a-zA-Z0-9 ]", "", query)
-    return safe_query.strip()
+
+    # Remove special characters such as :, *, quotes, braces, and -
+    safe_query = re.sub(r"[^a-zA-Z0-9 ]", " ", query)
+
+    # Break the remaining text into individual words.
+    words = safe_query.split()
+
+    # Remove Boolean operators that Gmail could interpret as commands.
+    blocked_words = {"OR", "AND", "NOT"}
+    safe_words = [
+        word for word in words
+        if word.upper() not in blocked_words
+    ]
+
+    return " ".join(safe_words)
 
 
 def get_recent_emails(
@@ -144,10 +157,3 @@ if __name__ == "__main__":
     print("\nAwaiting reply this month:\n")
     for e in get_emails_awaiting_reply():
         print(f"To: {e['to']} | Subject: {e['subject']} | Sent: {e['date']}")
-
-    # Quick exploit check — run this file directly and compare:
-    # before sanitization, a query like "test OR is:trusted from:*"
-    # would have widened the search using Gmail operators; now it's
-    # reduced to plain keywords.
-    print("\nSanitization check:")
-    print(_sanitize_query("test OR is:trusted from:*"))

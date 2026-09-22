@@ -20,6 +20,8 @@ plus a prompt that turns that data into a written daily digest.
   and the local venv/cache from the repo
 - `test_auth.py` — small standalone script used to manually verify the
   Google OAuth flow during development
+- `test_sanitization.py` — standalone exploit test for the input sanitization best practice
+- `test_error_disclosure.py` — standalone test showing that internal errors are replaced with a generic safe message
 
 ## Setup
 
@@ -68,10 +70,12 @@ plus a prompt that turns that data into a written daily digest.
 ## Best practices implemented
 
 1. **Input Sanitization** (`gmail_tools.py`, `_sanitize_query`) — the
-   `query` parameter is stripped to letters, numbers, and spaces before
-   being used in a Gmail search. Without this, a value like
+   `query` parameter is cleaned before being used in a Gmail search.
+   Special characters used by Gmail search syntax (`:`, `*`, quotes,
+   etc.) are removed, and Boolean operators such as `OR`, `AND`, and
+   `NOT` are filtered out. Without this, a value like
    `"test OR is:trusted from:*"` could inject extra Gmail search
-   operators far beyond a simple keyword lookup. After sanitization, the
+   behavior far beyond a simple keyword lookup. After sanitization, the
    same input is reduced to plain keywords with no operators left.
 
 2. **Error Disclosure** (`server.py`, `_safe_error`) — every tool wraps
@@ -82,15 +86,26 @@ plus a prompt that turns that data into a written daily digest.
 
 ## Testing the best practices
 
-- **Input Sanitization**: run `python gmail_tools.py` directly — the
-  last line prints a sample malicious query (`"test OR is:trusted
-  from:*"`) before and after sanitization, showing the operators get
-  stripped out.
-- **Error Disclosure**: temporarily rename `credentials_enmgt4405_A4.json`
-  to something else, then call any tool (e.g. ask for the daily digest
-  in Claude Desktop). You'll get the generic safe-error message instead
-  of a raw exception with internal file paths. Rename the file back
-  afterward to restore normal function.
+- **Input Sanitization**: run `python test_sanitization.py`. The script
+  passes a malicious Gmail search string containing operators such as
+  `OR`, `is:`, and `from:*` through `_sanitize_query()` and prints both
+  the original and sanitized versions, showing the input is reduced to
+  plain keywords before it can reach Gmail.
+
+- **Error Disclosure**: run `python test_error_disclosure.py`. The
+  script shows an example internal error containing a local file path,
+  then shows the generic message returned by `_safe_error()`. The MCP
+  tools in `server.py` use try/except blocks to replace internal
+  exceptions with this generic response so implementation details are
+  not returned to the MCP client.
+
+  For the live exploit demonstration, temporarily rename both
+  `credentials_enmgt4405_A4.json` and `token.json`, then call a calendar
+  or Gmail tool through Claude Desktop. With both authentication files
+  unavailable, the Google authentication process generates an internal
+  error. The MCP tool catches that exception and returns the generic
+  safe message instead of exposing the raw error or local file paths.
+  Restore both filenames afterward.
 
 ## AI tools used
 
