@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "daily-digest": {
+      "command": "/Users/marora/Library/Mobile Documents/com~apple~CloudDocs/Cornell Academics/Sem 7/ENMGT4405/MCP A4/.venv/bin/python",
+      "args": [
+        "/Users/marora/Library/Mobile Documents/com~apple~CloudDocs/Cornell Academics/Sem 7/ENMGT4405/MCP A4/server.py"
+      ]
+    }
+  }
+}
